@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -32,7 +32,9 @@ export default function BookingForm() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [submitAttempts, setSubmitAttempts] = useState(0)
   const { toast } = useToast()
+  const formRef = useRef(null)
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -49,26 +51,47 @@ export default function BookingForm() {
     setError(null)
     
     try {
-      // Format date to ISO string for API
-      const formattedValues = {
-        ...values,
-        date: values.date.toISOString().split('T')[0]
-      }
+      const response = await submitBooking(values)
       
-      // Send booking data to API
-      await submitBooking(formattedValues)
-      setIsSubmitted(true)
+      if (response.success) {
+        setIsSubmitted(true)
+        toast({
+          title: "Booking submitted successfully",
+          description: "We'll get back to you soon.",
+          duration: 5000,
+        })
+      } else {
+        throw new Error(response.message || "Failed to submit booking")
+      }
     } catch (err) {
-      setError("There was a problem submitting your booking. Please try again.")
-      toast({
-        title: "Booking Error",
-        description: "Failed to submit booking. Please try again later.",
-        variant: "destructive"
-      })
       console.error("Booking submission error:", err)
+      
+      setError(err.message || "Failed to submit booking request. Please try again.")
+      
+      // Auto retry logic for network issues
+      if (submitAttempts < 2 && err.message?.includes('network')) {
+        setSubmitAttempts(prev => prev + 1)
+        toast({
+          title: "Connection issue",
+          description: "Retrying submission...",
+          variant: "destructive",
+          duration: 3000,
+        })
+        
+        // Retry after a short delay
+        setTimeout(() => {
+          form.handleSubmit(onSubmit)()
+        }, 2000)
+      }
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Reset form in case of an error
+  const handleResetForm = () => {
+    setError(null)
+    setSubmitAttempts(0)
   }
 
   const formVariants = {
@@ -77,6 +100,7 @@ export default function BookingForm() {
       opacity: 1,
       transition: {
         staggerChildren: 0.1,
+        when: "beforeChildren",
       },
     },
   }
@@ -91,6 +115,14 @@ export default function BookingForm() {
       },
     },
   }
+
+  // Ensures focus is moved to error message when displayed
+  useEffect(() => {
+    if (error && formRef.current) {
+      const errorElement = formRef.current.querySelector('[role="alert"]')
+      errorElement?.focus()
+    }
+  }, [error])
 
   if (isSubmitted) {
     return (
@@ -133,6 +165,7 @@ export default function BookingForm() {
             onClick={() => {
               setIsSubmitted(false)
               form.reset()
+              setSubmitAttempts(0)
             }}
             className="bg-gradient-to-r from-white to-gray-200 text-black hover:from-gray-200 hover:to-white transition-all duration-300"
           >
@@ -146,6 +179,7 @@ export default function BookingForm() {
   return (
     <Form {...form}>
       <motion.form
+        ref={formRef}
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6"
         variants={formVariants}
@@ -157,8 +191,18 @@ export default function BookingForm() {
             className="bg-red-500/20 text-red-200 p-3 rounded-md border border-red-500/30"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
+            tabIndex={-1}
+            role="alert"
           >
             {error}
+            <Button 
+              variant="link" 
+              className="text-red-200 underline pl-2" 
+              onClick={handleResetForm}
+              type="button"
+            >
+              Dismiss
+            </Button>
           </motion.div>
         )}
         
@@ -174,6 +218,7 @@ export default function BookingForm() {
                     <Input
                       placeholder="Your full name"
                       {...field}
+                      aria-required="true"
                       className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300"
                     />
                   </FormControl>
@@ -193,6 +238,9 @@ export default function BookingForm() {
                   <FormControl>
                     <Input
                       placeholder="Your email address"
+                      type="email"
+                      aria-required="true"
+                      inputMode="email"
                       {...field}
                       className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300"
                     />
@@ -213,63 +261,12 @@ export default function BookingForm() {
                   <FormControl>
                     <Input
                       placeholder="Your phone number"
+                      type="tel"
+                      inputMode="tel"
                       {...field}
                       className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300"
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </motion.div>
-
-          <motion.div variants={formItemVariants}>
-            <FormField
-              control={form.control}
-              name="service"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300">
-                        <SelectValue placeholder="Select a service" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-zinc-800/90 backdrop-blur-md border-zinc-700">
-                      <SelectItem value="custom">Custom Tattoo</SelectItem>
-                      <SelectItem value="coverup">Cover-Up</SelectItem>
-                      <SelectItem value="blackgrey">Black & Grey</SelectItem>
-                      <SelectItem value="color">Color Work</SelectItem>
-                      <SelectItem value="traditional">Traditional</SelectItem>
-                      <SelectItem value="art">Custom Art</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </motion.div>
-
-          <motion.div variants={formItemVariants}>
-            <FormField
-              control={form.control}
-              name="artist"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preferred Artist (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300">
-                        <SelectValue placeholder="Any artist" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-zinc-800/90 backdrop-blur-md border-zinc-700">
-                      <SelectItem value="alex">Alex Rivera</SelectItem>
-                      <SelectItem value="morgan">Morgan Chen</SelectItem>
-                      <SelectItem value="jamie">Jamie Wilson</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -287,25 +284,26 @@ export default function BookingForm() {
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
-                          variant={"outline"}
-                          className={`w-full justify-start text-left font-normal bg-zinc-800/80 backdrop-blur-sm border-zinc-700 hover:bg-zinc-700/50 focus:border-white/50 transition-all duration-300 ${!field.value && "text-muted-foreground"}`}
+                          variant="outline"
+                          className="bg-zinc-800/80 backdrop-blur-sm border-zinc-700 hover:border-white/50 flex items-center justify-between pl-3 text-left font-normal transition-all duration-300"
+                          aria-label="Select a date"
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span className="text-muted-foreground">Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0 bg-zinc-800/90 backdrop-blur-md border-zinc-700"
-                      align="start"
-                    >
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 1}
                         initialFocus
-                        className="bg-transparent"
+                        disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
                       />
                     </PopoverContent>
                   </Popover>
@@ -327,6 +325,7 @@ export default function BookingForm() {
                   <Textarea
                     placeholder="Please describe your tattoo idea, including size, placement, and any reference images you have."
                     className="min-h-[120px] bg-zinc-800/80 backdrop-blur-sm border-zinc-700 focus:border-white/50 transition-all duration-300"
+                    aria-required="true"
                     {...field}
                   />
                 </FormControl>
@@ -342,14 +341,16 @@ export default function BookingForm() {
             className="w-full bg-gradient-to-r from-white to-gray-200 text-black hover:from-gray-200 hover:to-white transition-all duration-300"
             size="lg"
             disabled={isSubmitting}
+            aria-disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <div className="flex items-center">
+              <div className="flex items-center" aria-hidden="true">
                 <svg
                   className="animate-spin -ml-1 mr-3 h-5 w-5 text-black"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path
@@ -358,7 +359,8 @@ export default function BookingForm() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Processing...
+                <span>Processing...</span>
+                <span className="sr-only">Submitting your booking request</span>
               </div>
             ) : (
               "Submit Booking Request"

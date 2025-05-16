@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import ArtistCard from "@/components/artist-card"
 import ServiceCard from "@/components/service-card"
 import GalleryGrid from "@/components/gallery-grid"
-import { motion } from "framer-motion"
+import { motion, useMotionValue } from "framer-motion"
 import { useRef, useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
 import ParallaxText from "@/components/parallax-text"
 
 export default function Home() {
+  const [isClient, setIsClient] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const [windowHeight, setWindowHeight] = useState(0)
   const heroRef = useRef(null)
@@ -21,19 +22,15 @@ export default function Home() {
   const artistsRef = useRef(null)
   const galleryRef = useRef(null)
   const bookingRef = useRef(null)
-
-  // Safe calculation functions that won't run during SSR
-  const calculateOpacity = () => {
-    if (typeof window === 'undefined') return 1
-    return Math.max(0, 1 - (scrollY / windowHeight) * 2)
-  }
-
-  const calculateScale = () => {
-    if (typeof window === 'undefined') return 1
-    return Math.max(0.9, 1 - (scrollY / windowHeight) * 0.5)
-  }
+  
+  // Safe opacity and scale values that will be consistent between server and client
+  const opacity = useMotionValue(1)
+  const scale = useMotionValue(1)
 
   useEffect(() => {
+    // This only runs on client
+    setIsClient(true)
+    
     // Set initial window height
     setWindowHeight(window.innerHeight)
     
@@ -42,11 +39,24 @@ export default function Home() {
     }
     
     const handleScroll = () => {
-      setScrollY(window.scrollY)
+      const currentScrollY = window.scrollY
+      setScrollY(currentScrollY)
+      
+      // Update motion values based on scroll position
+      if (windowHeight > 0) {
+        opacity.set(Math.max(0, 1 - (currentScrollY / windowHeight) * 2))
+        scale.set(Math.max(0.9, 1 - (currentScrollY / windowHeight) * 0.5))
+      }
     }
 
     // Set initial scroll position
     setScrollY(window.scrollY)
+    
+    // Initial calculation
+    if (windowHeight > 0) {
+      opacity.set(Math.max(0, 1 - (window.scrollY / windowHeight) * 2))
+      scale.set(Math.max(0.9, 1 - (window.scrollY / windowHeight) * 0.5))
+    }
 
     window.addEventListener("resize", handleResize, { passive: true })
     window.addEventListener("scroll", handleScroll, { passive: true })
@@ -55,7 +65,7 @@ export default function Home() {
       window.removeEventListener("resize", handleResize)
       window.removeEventListener("scroll", handleScroll)
     }
-  }, [])
+  }, [windowHeight, opacity, scale])
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 60 },
@@ -92,28 +102,27 @@ export default function Home() {
           transition={{ duration: 1.5 }}
         />
 
-        <motion.div
-          className="absolute inset-0 z-[-1] bg-[url('/images/tattoo-bg.jpg')] bg-cover bg-center"
-          style={{
-            backgroundPosition: "center 30%",
-            y: scrollY * 0.3,
-            scale: 1 + scrollY * 0.0002,
-            filter: `blur(${scrollY * 0.01}px) brightness(${1 - scrollY * 0.0005})`,
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.4 }}
-          transition={{ duration: 1.5 }}
-        />
+        {isClient && (
+          <motion.div
+            className="absolute inset-0 z-[-1] bg-[url('/images/tattoo-bg.jpg')] bg-cover bg-center"
+            style={{
+              backgroundPosition: "center 30%",
+              y: scrollY * 0.3,
+              scale: 1 + scrollY * 0.0002,
+              filter: `blur(${scrollY * 0.01}px) brightness(${1 - scrollY * 0.0005})`,
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            transition={{ duration: 1.5 }}
+          />
+        )}
 
         <div className="container px-4 z-10 text-center">
           <motion.div
             className="max-w-[300px] mx-auto mb-8"
-            style={{
-              scale: calculateScale(),
-              opacity: calculateOpacity(),
-            }}
+            style={{ opacity, scale }}
             initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            animate={isClient ? { y: 0, opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <Image
@@ -122,13 +131,14 @@ export default function Home() {
               width={300}
               height={300}
               className="w-full h-auto"
+              priority
             />
           </motion.div>
           <h1 className="sr-only">Ink Over Matter - Skin Art & Illustrations</h1>
           <motion.p
             className="text-xl md:text-2xl mt-6 mb-8 text-gray-300 max-w-2xl mx-auto"
             initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            animate={isClient ? { y: 0, opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
             Premium custom tattoos and illustrations by award-winning artists
@@ -136,7 +146,7 @@ export default function Home() {
           <motion.div
             className="flex flex-col sm:flex-row gap-4 justify-center mt-8"
             initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            animate={isClient ? { y: 0, opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             <Button
@@ -157,19 +167,21 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <motion.div
-          className="absolute bottom-10 left-0 right-0 flex justify-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1 }}
-        >
+        {isClient && (
           <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: "easeInOut" }}
+            className="absolute bottom-10 left-0 right-0 flex justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
           >
-            <ChevronRight className="h-8 w-8 rotate-90 text-white/70" />
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: "easeInOut" }}
+            >
+              <ChevronRight className="h-8 w-8 rotate-90 text-white/70" />
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
       </section>
 
       {/* Divider with Parallax Text */}
@@ -198,9 +210,7 @@ export default function Home() {
               variants={fadeInUp}
             >
               <p className="text-lg text-gray-300 mb-6">
-                Founded in 2010, Ink Over Matter has established itself as a premier destination for custom tattoos and
-                fine art. Our team of skilled artists specializes in various styles, from traditional to contemporary,
-                ensuring that each piece is a unique work of art.
+              Ink Over Matter is a premium tattoo studio founded by Anurag Pradhan from Darjeeling, who also serves as the studio’s main artist. Known for precision, creativity, and professional standards, the studio offers custom tattoos tailored through direct consultation. Every piece is crafted with care, hygiene, and attention to detail.
               </p>
               <p className="text-lg text-gray-300 mb-6">
                 We pride ourselves on maintaining the highest standards of hygiene and safety, using only premium
@@ -566,7 +576,6 @@ export default function Home() {
                   <li className="text-gray-400">HAL 3rd Stage, Kodihalli</li>
                   <li className="text-gray-400">Bengaluru, Karnataka 560008</li>
                   <li className="text-gray-400">(555) 123-4567</li>
-                  <li className="text-gray-400">info@inkovermatter.com</li>
                 </ul>
               </div>
               <div>
@@ -610,7 +619,18 @@ export default function Home() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <p>© {new Date().getFullYear()} Ink Over Matter. All rights reserved.</p>
+            <p className="mb-2">© {new Date().getFullYear()} Ink Over Matter. All rights reserved.</p>
+            <p className="text-sm">
+              Website created and maintained by{" "}
+              <a 
+                href="https://www.linkedin.com/in/sujal-raj-pradhan-a85043242/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                Sujal Raj Pradhan
+              </a>
+            </p>
           </motion.div>
         </div>
       </footer>

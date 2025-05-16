@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Menu, X } from "lucide-react"
@@ -11,26 +11,49 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const offset = window.scrollY
-      if (offset > 50) {
-        setScrolled(true)
-      } else {
-        setScrolled(false)
-      }
-    }
+  // Debounced scroll handler for better performance
+  const handleScroll = useCallback(() => {
+    const offset = window.scrollY
+    setScrolled(offset > 50)
+  }, [])
 
-    window.addEventListener("scroll", handleScroll)
+  // Use passive event listener for better performance
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => {
       window.removeEventListener("scroll", handleScroll)
     }
-  }, [])
+  }, [handleScroll])
+
+  // Close mobile menu on escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   const toggleMenu = () => {
     setIsOpen(!isOpen)
   }
 
+  // Use simpler animation variants for better performance
   const menuVariants = {
     closed: {
       opacity: 0,
@@ -38,9 +61,6 @@ export default function Navbar() {
       transition: {
         duration: 0.3,
         ease: "easeInOut",
-        when: "afterChildren",
-        staggerChildren: 0.05,
-        staggerDirection: -1,
       },
     },
     open: {
@@ -50,8 +70,7 @@ export default function Navbar() {
         duration: 0.3,
         ease: "easeInOut",
         when: "beforeChildren",
-        staggerChildren: 0.1,
-        delayChildren: 0.1,
+        staggerChildren: 0.05,
       },
     },
   }
@@ -60,6 +79,14 @@ export default function Navbar() {
     closed: { opacity: 0, x: 20 },
     open: { opacity: 1, x: 0 },
   }
+
+  const menuItems = [
+    { href: "#about", label: "About" },
+    { href: "#services", label: "Services" },
+    { href: "#artists", label: "Artists" },
+    { href: "#gallery", label: "Gallery" },
+    { href: "#booking", label: "Booking" }
+  ]
 
   return (
     <>
@@ -79,55 +106,35 @@ export default function Navbar() {
               alt="Ink Over Matter Logo"
               width={50}
               height={50}
-              className="w-[50px] h-auto"
+              className="rounded-full"
+              priority
             />
           </Link>
 
-          <nav className="hidden md:flex gap-6">
-            <Link
-              href="#about"
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
-            >
-              About
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link
-              href="#services"
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
-            >
-              Services
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link
-              href="#artists"
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
-            >
-              Artists
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link
-              href="#gallery"
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
-            >
-              Gallery
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link
-              href="#booking"
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
-            >
-              Booking
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
-            </Link>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-white/80 hover:text-white transition-colors relative group"
+              >
+                {item.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300"></span>
+              </Link>
+            ))}
           </nav>
 
+          {/* Mobile Menu Button - Better accessibility */}
           <div className="md:hidden">
             <button
               onClick={toggleMenu}
               className="p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors"
-              aria-label="Toggle menu"
+              aria-expanded={isOpen}
+              aria-controls="mobile-menu"
+              aria-label={isOpen ? "Close menu" : "Open menu"}
             >
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
@@ -136,57 +143,39 @@ export default function Navbar() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id="mobile-menu"
             className="fixed inset-0 z-40 bg-black/90 backdrop-blur-md md:hidden"
             initial="closed"
             animate="open"
             exit="closed"
             variants={menuVariants}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile navigation menu"
           >
-            <div className="flex flex-col h-full justify-center items-center gap-8 p-4">
-              <motion.div variants={itemVariants}>
-                <Link
-                  href="#about"
-                  className="text-2xl font-bold hover:text-gray-300 transition-colors"
-                  onClick={() => setIsOpen(false)}
+            <div className="flex flex-col h-full justify-center items-center gap-8 p-4" role="menu">
+              {menuItems.map((item, i) => (
+                <motion.div key={item.href} variants={itemVariants}>
+                  <Link
+                    href={item.href}
+                    className="text-2xl font-bold hover:text-gray-300 transition-colors"
+                    onClick={() => setIsOpen(false)}
+                    role="menuitem"
+                    tabIndex={isOpen ? 0 : -1}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
+              
+              <motion.div variants={itemVariants} className="absolute top-4 right-4">
+                <button 
+                  onClick={() => setIsOpen(false)} 
+                  className="p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20"
+                  aria-label="Close menu"
                 >
-                  About
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link
-                  href="#services"
-                  className="text-2xl font-bold hover:text-gray-300 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Services
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link
-                  href="#artists"
-                  className="text-2xl font-bold hover:text-gray-300 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Artists
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link
-                  href="#gallery"
-                  className="text-2xl font-bold hover:text-gray-300 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Gallery
-                </Link>
-              </motion.div>
-              <motion.div variants={itemVariants}>
-                <Link
-                  href="#booking"
-                  className="text-2xl font-bold hover:text-gray-300 transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Booking
-                </Link>
+                  <X className="h-6 w-6" aria-hidden="true" />
+                </button>
               </motion.div>
             </div>
           </motion.div>

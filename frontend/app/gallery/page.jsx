@@ -17,7 +17,7 @@ export default function GalleryPage() {
   const [selectedImage, setSelectedImage] = useState(null)
   const [viewMode, setViewMode] = useState('tattoos')
   const [isLoaded, setIsLoaded] = useState({})
-  const [isMounted, setIsMounted] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   // Fallback gallery items in case API fails
   const fallbackTattoos = [
@@ -42,15 +42,25 @@ export default function GalleryPage() {
     { id: 101, title: "Studio", url: "/images/studio.jpg" },
     { id: 102, title: "Studio front entrance", url: "/images/studio_entrance.jpg" },
     { id: 103, title: "Artist workstation", url: "/images/workstation.jpg" },
+    // Adding more images would improve the user experience
   ]
 
-  // Component mounted effect - important for hydration
+  // Better approach to handle hydration without isMounted state
   useEffect(() => {
-    setIsMounted(true)
+    setIsClient(true)
+    
+    // Pre-load images for smoother transitions
+    if (viewMode === 'tattoos') {
+      fallbackTattoos.slice(0, 4).forEach(item => {
+        // Use HTMLImageElement instead of `new Image()` to avoid conflict with Next.js Image component
+        const imgEl = document.createElement('img')
+        imgEl.src = item.url
+      })
+    }
   }, [])
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isClient) return;
     
     const loadGallery = async () => {
       if (viewMode === 'tattoos') {
@@ -87,7 +97,7 @@ export default function GalleryPage() {
     }
 
     loadGallery()
-  }, [viewMode, isMounted])
+  }, [viewMode, isClient])
 
   const handleOpenImage = (id) => {
     setSelectedImage(id)
@@ -128,7 +138,7 @@ export default function GalleryPage() {
             </Link>
           </Button>
           
-          {isMounted && (
+          {isClient && (
             <motion.h1 
               className="text-4xl md:text-5xl font-bold mb-6"
               initial={{ opacity: 0, y: 20 }}
@@ -139,7 +149,7 @@ export default function GalleryPage() {
             </motion.h1>
           )}
           
-          {isMounted && (
+          {isClient && (
             <motion.p 
               className="text-xl text-gray-300 max-w-2xl"
               initial={{ opacity: 0, y: 20 }}
@@ -201,7 +211,7 @@ export default function GalleryPage() {
             <div className="text-center py-20 text-gray-400">
               No images available to display.
             </div>
-          ) : isMounted ? (
+          ) : isClient ? (
             <motion.div 
               className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
               initial="hidden"
@@ -274,7 +284,7 @@ export default function GalleryPage() {
 
           {/* Image Modal Dialog */}
           <AnimatePresence>
-            {selectedImage !== null && isMounted && (
+            {selectedImage !== null && isClient && (
               <Dialog open={selectedImage !== null} onOpenChange={handleCloseImage}>
                 <DialogContent className="max-w-3xl bg-zinc-900/90 backdrop-blur-md border-zinc-800">
                   {selectedItem && (
