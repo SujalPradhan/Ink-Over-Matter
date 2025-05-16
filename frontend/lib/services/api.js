@@ -1,5 +1,5 @@
 // API service for InkOverMatter
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://iombackend.vercel.app';
 
 /**
  * Fetch the full gallery from the backend API
