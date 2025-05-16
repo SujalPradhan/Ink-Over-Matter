@@ -7,6 +7,7 @@ import { z } from "zod"
 import { CalendarIcon, CheckCircle } from "lucide-react"
 import { format } from "date-fns"
 import { motion } from "framer-motion"
+import { submitBooking } from "@/lib/services/api"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useToast } from "@/components/ui/use-toast"
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -29,6 +31,8 @@ const formSchema = z.object({
 export default function BookingForm() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const { toast } = useToast()
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -40,14 +44,31 @@ export default function BookingForm() {
     },
   })
 
-  function onSubmit(values) {
+  async function onSubmit(values) {
     setIsSubmitting(true)
-    console.log(values)
-    // In a real application, you would send this data to your backend
-    setTimeout(() => {
-      setIsSubmitting(false)
+    setError(null)
+    
+    try {
+      // Format date to ISO string for API
+      const formattedValues = {
+        ...values,
+        date: values.date.toISOString().split('T')[0]
+      }
+      
+      // Send booking data to API
+      await submitBooking(formattedValues)
       setIsSubmitted(true)
-    }, 1500)
+    } catch (err) {
+      setError("There was a problem submitting your booking. Please try again.")
+      toast({
+        title: "Booking Error",
+        description: "Failed to submit booking. Please try again later.",
+        variant: "destructive"
+      })
+      console.error("Booking submission error:", err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const formVariants = {
@@ -63,7 +84,7 @@ export default function BookingForm() {
   const formItemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
-      opacity: 1,
+      opacity: 1, 
       y: 0,
       transition: {
         duration: 0.4,
@@ -109,7 +130,10 @@ export default function BookingForm() {
           transition={{ delay: 0.5, duration: 0.5 }}
         >
           <Button
-            onClick={() => setIsSubmitted(false)}
+            onClick={() => {
+              setIsSubmitted(false)
+              form.reset()
+            }}
             className="bg-gradient-to-r from-white to-gray-200 text-black hover:from-gray-200 hover:to-white transition-all duration-300"
           >
             Submit Another Request
@@ -128,6 +152,16 @@ export default function BookingForm() {
         initial="hidden"
         animate="visible"
       >
+        {error && (
+          <motion.div 
+            className="bg-red-500/20 text-red-200 p-3 rounded-md border border-red-500/30"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <motion.div variants={formItemVariants}>
             <FormField

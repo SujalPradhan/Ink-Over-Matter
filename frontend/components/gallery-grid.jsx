@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 
 const galleryItems = [
-  { id: 1, src: "/images/tattoo1.jpg", alt: "Black and grey realistic portrait tattoo", category: "Black & Grey" },
-  { id: 2, src: "/images/tattoo2.jpg", alt: "Colorful neo-traditional tattoo", category: "Color" },
-  { id: 3, src: "/images/tattoo3.jpg", alt: "Japanese style sleeve tattoo", category: "Japanese" },
-  { id: 4, src: "/images/tattoo4.jpg", alt: "Minimalist line work tattoo", category: "Minimalist" },
-  { id: 5, src: "/images/tattoo5.jpg", alt: "Traditional American style tattoo", category: "Traditional" },
-  { id: 6, src: "/images/tattoo6.jpg", alt: "Abstract geometric tattoo design", category: "Geometric" },
+  { id: 1, src: "/images/tattoo1.jpg", alt: "Premium tattoo artwork" },
+  { id: 2, src: "/images/tattoo2.jpg", alt: "Custom tattoo design" },
+  { id: 3, src: "/images/tattoo3.jpg", alt: "Unique tattoo artwork" },
+  { id: 4, src: "/images/tattoo4.jpg", alt: "Minimalist tattoo design" },
+  { id: 5, src: "/images/tattoo5.jpg", alt: "Artistic tattoo piece" },
+  { id: 6, src: "/images/tattoo6.jpg", alt: "Creative tattoo design" },
+  
 ]
 
 export default function GalleryGrid() {
@@ -58,6 +59,9 @@ export default function GalleryGrid() {
               src={item.src || "/placeholder.svg"}
               alt={item.alt}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+              quality={85}
+              priority={index < 4}
               className={cn(
                 "object-cover transition-transform duration-700 group-hover:scale-110",
                 !isLoaded[item.id] && "blur-sm",
@@ -72,9 +76,6 @@ export default function GalleryGrid() {
             ></motion.div>
             <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
               <div>
-                <span className="text-xs font-medium px-2 py-1 bg-white/20 backdrop-blur-sm rounded-full">
-                  {item.category}
-                </span>
                 <p className="text-white mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   {item.alt}
                 </p>
@@ -101,13 +102,15 @@ export default function GalleryGrid() {
                       src={selectedItem.src || "/placeholder.svg"}
                       alt={selectedItem.alt}
                       fill
+                      sizes="(max-width: 1024px) 90vw, 75vw"
+                      quality={90}
+                      priority
                       className="object-contain"
                     />
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 mix-blend-overlay"></div>
                   </div>
                   <div className="mt-4">
                     <p className="text-gray-300">{selectedItem.alt}</p>
-                    <p className="text-sm text-gray-500 mt-1">Category: {selectedItem.category}</p>
                   </div>
                 </motion.div>
               )}

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import ArtistCard from "@/components/artist-card"
 import ServiceCard from "@/components/service-card"
 import GalleryGrid from "@/components/gallery-grid"
-import BookingForm from "@/components/booking-form"
 import { motion } from "framer-motion"
 import { useRef, useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
@@ -153,7 +152,7 @@ export default function Home() {
               size="lg"
               className="backdrop-blur-sm bg-white/10 border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105"
             >
-              <Link href="#gallery">View Our Work</Link>
+              <Link href="/gallery">View Our Work</Link>
             </Button>
           </motion.div>
         </div>
@@ -220,12 +219,12 @@ export default function Home() {
                   </div>
                   <span>Kodihalli, Bengaluru, Karnataka 560008</span>
                 </motion.div>
-                <motion.div className="flex items-center gap-3" variants={fadeInUp}>
+                {/* <motion.div className="flex items-center gap-3" variants={fadeInUp}>
                   <div className="p-2 rounded-full bg-white/10 backdrop-blur-sm">
                     <Phone className="h-5 w-5 text-white" />
                   </div>
                   <span>(555) 123-4567</span>
-                </motion.div>
+                </motion.div> */}
                 <motion.div className="flex items-center gap-3" variants={fadeInUp}>
                   <div className="p-2 rounded-full bg-white/10 backdrop-blur-sm">
                     <Clock className="h-5 w-5 text-white" />
@@ -337,7 +336,7 @@ export default function Home() {
             viewport={{ once: true, margin: "-100px" }}
             variants={fadeInUp}
           >
-            Meet Our Artists
+            Meet Our Artist
           </motion.h2>
           <motion.p
             className="text-lg text-gray-400 text-center max-w-2xl mx-auto mb-12"
@@ -346,7 +345,7 @@ export default function Home() {
             viewport={{ once: true, margin: "-100px" }}
             variants={fadeInUp}
           >
-            Our team of talented professionals brings years of experience and passion to every piece
+            Anurag Pradhan is professional who brings years of experience and passion to every piece
           </motion.p>
 
           <motion.div
@@ -359,13 +358,13 @@ export default function Home() {
             <motion.div variants={fadeInUp}>
               <ArtistCard
                 name="Anurag Pradhan"
-                specialty="Neo-Traditional"
+                // specialty="Neo-Traditional"
                 image="/images/artist1.jpg"
                 experience="12 years"
                 instagram="@anuragpradhan"
               />
             </motion.div>
-            <motion.div variants={fadeInUp}>
+            {/* <motion.div variants={fadeInUp}>
               <ArtistCard
                 name="Youn Pradhan"
                 specialty="Neo-Traditional"
@@ -373,7 +372,7 @@ export default function Home() {
                 experience="8 years"
                 instagram="@younpradhan29851"
               />
-            </motion.div>
+            </motion.div> */}
             {/* <motion.div variants={fadeInUp}>
               <ArtistCard
                 name="Jamie Wilson"
@@ -460,17 +459,46 @@ export default function Home() {
             viewport={{ once: true, margin: "-100px" }}
             variants={fadeInUp}
           >
-            Start your tattoo journey with a consultation
+            Contact us directly to schedule your consultation
           </motion.p>
 
           <motion.div
-            className="max-w-2xl mx-auto"
+            className="max-w-2xl mx-auto text-center"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
           >
-            <BookingForm />
+            <div className="bg-black/30 backdrop-blur-sm p-8 rounded-lg border border-white/10">
+              <h3 className="text-xl font-semibold mb-6">Contact us for appointments</h3>
+              
+              <div className="flex flex-col md:flex-row justify-center gap-8 mb-8">
+                <a 
+                  href="tel:+919731119546" 
+                  className="flex items-center justify-center gap-3 text-lg hover:text-white/80 transition-colors"
+                >
+                  <Phone className="h-5 w-5" />
+                  <span>+91-9731119546</span>
+                </a>
+                
+                <a 
+                  href="https://wa.me/917676887842" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-3 text-lg hover:text-white/80 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-whatsapp" viewBox="0 0 16 16">
+                    <path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/>
+                  </svg>
+                  <span>+91-7676887842</span>
+                  <span className="text-sm text-gray-400"></span>
+                </a>
+              </div>
+              
+              <p className="text-gray-400 mt-6">
+                Our team is available Tuesday to Saturday, 11AM-8PM to assist you with scheduling and answering any questions.
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
